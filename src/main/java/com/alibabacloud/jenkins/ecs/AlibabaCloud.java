@@ -332,7 +332,30 @@ public class AlibabaCloud extends Cloud {
 
     public AlibabaEcsClient reconnectToAlibabaCloudEcs() {
         synchronized (this) {
-            connection = AlibabaEcsFactory.getInstance().connect(getCredentials(), getRegion(), intranetMaster);
+            if (StringUtils.isBlank(credentialsId)) {
+                // 使用 credentials-java 自动获取 STS 凭证
+                try {
+                    Config credentialConfig = new Config();
+                    credentialConfig.setType("ecs_ram_role");
+                    credentialConfig.setDisableIMDSv1(true);
+                    Client credentialClient = new Client(credentialConfig);
+
+                    // 获取临时凭证
+                    String accessKeyId = credentialClient.getAccessKeyId();
+                    String accessKeySecret = credentialClient.getAccessKeySecret();
+                    String securityToken = credentialClient.getSecurityToken();
+
+                    // 使用临时凭证创建 AlibabaEcsClient
+                    connection = new AlibabaEcsClient(accessKeyId, accessKeySecret, securityToken, region, intranetMaster);
+                    log.info("Successfully connected to Alibaba Cloud using ECS RAM Role.");
+                } catch (Exception e) {
+                    log.error("Failed to connect to Alibaba Cloud using ECS RAM Role.", e);
+                    throw new RuntimeException("Failed to connect to Alibaba Cloud using ECS RAM Role.", e);
+                }
+            } else {
+                // 使用已有的凭证 ID 连接
+                connection = AlibabaEcsFactory.getInstance().connect(getCredentials(), getRegion(), intranetMaster);
+            }
             return connection;
         }
     }

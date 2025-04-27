@@ -101,20 +101,12 @@ public class AlibabaEcsClient {
     private static Integer INIT_PAGE_NUMBER = 1;
     private Boolean intranetMaster = Boolean.FALSE;
 
-    public AlibabaEcsClient(AlibabaCloudCredentials credentials, String regionNo, Boolean intranetMaster) {
-        IClientProfile profile;
-        if (CredentialsHelper.isSessionTokenCredentials(credentials)) {
-            profile = DefaultProfile.getProfile(regionNo,
-                credentials.getAccessKeyId(),
-                credentials.getAccessKeySecret(),
-                ((AlibabaSessionTokenCredentials)credentials).getSecretToken());
-        } else {
-            profile = DefaultProfile.getProfile(regionNo,
-                credentials.getAccessKeyId(),
-                credentials.getAccessKeySecret());
+    public AlibabaEcsClient(String accessKeyId, String accessKeySecret, String securityToken, String regionNo, Boolean intranetMaster) {
+        IClientProfile profile = DefaultProfile.getProfile(regionNo, accessKeyId, accessKeySecret);
+        if (StringUtils.isNotBlank(securityToken)) {
+            profile = DefaultProfile.getProfile(regionNo, accessKeyId, accessKeySecret, securityToken);
         }
         if (intranetMaster != null && intranetMaster) {
-            // use vpc endpoint if jenkins master in vpc private env
             profile.enableUsingVpcEndpoint();
         }
         HttpClientConfig clientConfig = HttpClientConfig.getDefault();
@@ -124,7 +116,7 @@ public class AlibabaEcsClient {
         this.client = new DefaultAcsClient(profile);
         this.regionNo = regionNo;
         this.intranetMaster = intranetMaster == null ? Boolean.FALSE : intranetMaster;
-        log.info("AlibabaEcsClient init success. regionNo: {} intranetMaster: {}", regionNo, intranetMaster);
+        log.info("AlibabaEcsClient initialized with temporary credentials. regionNo: {} intranetMaster: {}", regionNo, intranetMaster);
     }
 
     public List<Region> describeRegions() {
